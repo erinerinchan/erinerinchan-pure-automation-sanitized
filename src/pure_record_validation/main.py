@@ -1,4 +1,4 @@
-"""Command-line entrypoint for processing sample e-thesis submissions."""
+"""Command-line entrypoint for validating sample PURE publication records."""
 
 from __future__ import annotations
 
@@ -13,13 +13,13 @@ def run(input_csv: Path) -> int:
     records = load_records(input_csv)
     results = process_records(records)
 
-    print("E-thesis processing report")
+    print("PURE record validation report")
     print("=" * 30)
 
     valid_count = 0
     for result in results:
         status = "PASS" if result.is_valid else "FAIL"
-        print(f"[{status}] {result.student_id}")
+        print(f"[{status}] {result.record_id}")
         print(f"  original : {result.original_filename}")
         print(f"  renamed  : {result.proposed_filename}")
         print(f"  tokens   : {', '.join(result.extracted_title_tokens)}")
@@ -37,12 +37,12 @@ def run(input_csv: Path) -> int:
 
 def parse_args() -> argparse.Namespace:
     """Parse command-line arguments."""
-    parser = argparse.ArgumentParser(description="Process sanitized e-thesis sample records.")
+    parser = argparse.ArgumentParser(description="Validate sanitized PURE sample records.")
     parser.add_argument(
         "--input",
         type=Path,
-        default=Path("sample_data") / "thesis_records.csv",
-        help="Path to sample thesis records CSV.",
+        default=Path("sample_data") / "pure_records.csv",
+        help="Path to sample PURE records CSV.",
     )
     return parser.parse_args()
 

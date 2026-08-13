@@ -1,6 +1,6 @@
-"""Utilities for sanitized e-thesis processing automation."""
+"""Utilities for sanitized PURE record validation automation."""
 
-from .models import ThesisRecord, ValidationResult
+from .models import PureRecord, ValidationResult
 from .processor import (
     build_output_filename,
     extract_metadata_from_filename,
@@ -9,7 +9,7 @@ from .processor import (
 )
 
 __all__ = [
-    "ThesisRecord",
+    "PureRecord",
     "ValidationResult",
     "build_output_filename",
     "extract_metadata_from_filename",

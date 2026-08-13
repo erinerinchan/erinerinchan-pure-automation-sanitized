@@ -1,68 +1,54 @@
-# E-thesis processing automation (sanitized)
+# PURE record validation automation (sanitized)
 
-Python utilities that automate e-thesis file validation, metadata checks, and standardized output naming.
+Python utilities that automate publication-record validation checks and standardized filename generation for PURE workflows.
 
 ## The problem
-Manual e-thesis processing took about 10 minutes per submission. In practice, staff had to repeat the same steps:
+Manual PURE record validation took about 10 minutes per submission. Typical repeated steps were:
 
-1. Check filename conventions and rename files.
-2. Validate submission format (for example, PDF and minimum page expectations).
-3. Verify metadata completeness and consistency.
-4. Extract basic metadata clues from filenames.
-5. Prepare normalized output values for downstream repository entry.
+1. Open each record and check required metadata fields.
+2. Verify attachment format and basic document constraints.
+3. Normalize naming patterns for consistency and traceability.
+4. Spot missing or inconsistent values before final validation.
+5. Record issues for manual correction.
 
 ## The approach
-This sanitized project demonstrates the same workflow as production, with synthetic data only:
+This sanitized project mirrors that workflow using synthetic data:
 
-1. Load thesis records from CSV.
-2. Validate each record against rules:
-   - student ID format
-   - allowed file extension
-   - page count threshold
-   - title length threshold
-   - abstract minimum length
-3. Build a standardized output filename for each thesis.
-4. Extract title-like tokens from the original filename for quick manual verification.
-5. Print a concise pass/fail report per record.
+1. Load publication records from CSV.
+2. Validate each record against explicit rules:
+3. Check record ID format.
+4. Check attachment type (PDF only).
+5. Check minimum page count.
+6. Check title length and journal presence.
+7. Check abstract minimum length.
+8. Generate a standardized output filename.
+9. Extract metadata-like filename tokens for quick review.
+10. Print a pass/fail report with concrete error messages.
 
 ## Impact
+
 Time saved per term:
 
-- Formula: $10 \text{ minutes} \times N \text{ submissions} = \frac{10N}{60} \text{ hours saved}$
-- Fill-in value: replace $N$ with your term submission count.
+$10 \text{ minutes} \times N \text{ submissions} = \frac{10N}{60} \text{ hours saved}$
+
+Replace $N$ with your submission count per term.
 
 ## Before / after
 
 | Before (manual) | After (automated) |
 |---|---|
-| Read each submission file manually | Load all records from one CSV |
-| Manually rename files to standard format | Generate standardized filenames consistently |
-| Check file type and page length one by one | Run rule checks in one pass |
-| Spot metadata issues by inspection | Get explicit validation errors per record |
-| Prepare outputs by hand | Produce a repeatable processing report |
+| Open each record and scan fields by eye | Load all records in one run |
+| Manually check formatting and constraints | Apply rule checks automatically |
+| Rename files one at a time | Generate standardized filenames consistently |
+| Note issues in ad-hoc comments | Output explicit validation errors per record |
+| Repeat process for every submission | Reuse one deterministic pipeline |
 
-## How to run
-
-1. Install dependencies:
+## How to run on sample data
 
 ```bash
-pip install -r requirements.txt
-```
-
-2. Run on synthetic sample data:
-
-```bash
-python -m src.ethesis_processing.main --input sample_data/thesis_records.csv
+python -m src.pure_record_validation.main --input sample_data/pure_records.csv
 ```
 
 ## Sanitization note
+
 Sanitized version of a production script used at a university library; all data shown is synthetic.
-
-## Sanitization changes applied
-Potentially sensitive elements from the original working scripts were identified and replaced or isolated:
-
-1. Internal portal URL replaced with placeholder config variable pattern (for publishable code, use values like `PORTAL_BASE_URL`).
-2. Local machine paths (for example Windows user profile paths) removed from publishable workflow and replaced by relative paths.
-3. Institutional identifiers (organization-specific portal names and labels) generalized to neutral wording.
-4. Contact details in request headers (for example direct email addresses) should be moved to environment configuration before publication.
-5. Browser profile/session artifacts are excluded from version control via `.gitignore`.
