@@ -1,53 +1,46 @@
-# PURE record validation automation (sanitized)
+# PURE DOI Metadata Helper (Sanitized)
 
-Python utilities that automate publication-record validation checks and standardized filename generation for PURE workflows.
+Extracts publication metadata from a DOI into a plain-text report and opens Scopus, Web of Science, and OpenAlex tabs for quick cross-checking.
 
-## The problem
-Manual PURE record validation took about 10 minutes per submission. Typical repeated steps were:
+## What this script does
 
-1. Open each record and check required metadata fields.
-2. Verify attachment format and basic document constraints.
-3. Normalize naming patterns for consistency and traceability.
-4. Spot missing or inconsistent values before final validation.
-5. Record issues for manual correction.
+The main script is [pure_metadata.py](pure_metadata.py).
 
-## The approach
-This sanitized project mirrors that workflow using synthetic data:
+1. Accepts a DOI (or title) from the user.
+2. Queries metadata sources (OpenAlex and Scopus when API key is available).
+3. Merges results into a structured plain-text report.
+4. Saves the report to a local .txt file.
+5. Opens browser tabs for cross-checking the same publication in:
+	- Scopus
+	- Web of Science
+	- OpenAlex
 
-1. Load publication records from CSV.
-2. Validate each record against explicit rules:
-3. Check record ID format.
-4. Check attachment type (PDF only).
-5. Check minimum page count.
-6. Check title length and journal presence.
-7. Check abstract minimum length.
-8. Generate a standardized output filename.
-9. Extract metadata-like filename tokens for quick review.
-10. Print a pass/fail report with concrete error messages.
+## Scope and limitations
 
-## Impact
+This tool does not automate full PURE record entry.
 
-Time saved per term:
+1. It does **not** fill PURE fields end-to-end.
+2. It does **not** replace manual review/validation decisions in PURE.
+3. It is intended to save time only on:
+	- Looking up and reviewing metadata from a DOI
+	- Opening Scopus, Web of Science, and OpenAlex tabs for cross-checking
 
-$10 \text{ minutes} \times N \text{ submissions} = \frac{10N}{60} \text{ hours saved}$
+## Why this exists
 
-Replace $N$ with your submission count per term.
+Manual metadata lookup and opening multiple database tabs are repetitive and time-consuming. This helper removes those two repeated steps so staff can focus on the judgment-based part of record validation.
 
-## Before / after
-
-| Before (manual) | After (automated) |
-|---|---|
-| Open each record and scan fields by eye | Load all records in one run |
-| Manually check formatting and constraints | Apply rule checks automatically |
-| Rename files one at a time | Generate standardized filenames consistently |
-| Note issues in ad-hoc comments | Output explicit validation errors per record |
-| Repeat process for every submission | Reuse one deterministic pipeline |
-
-## How to run on sample data
+## How to run
 
 ```bash
-python -m src.pure_record_validation.main --input sample_data/pure_records.csv
+python pure_metadata.py
 ```
+
+Then enter a DOI when prompted.
+
+## Configuration notes
+
+1. Scopus lookups require an API key (for example via environment variable such as SCOPUS_API_KEY).
+2. If no Scopus key is present, the script still runs using OpenAlex.
 
 ## Sanitization note
 
