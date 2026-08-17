@@ -78,6 +78,9 @@ REQUEST_PAUSE_SECONDS = float(os.environ.get("PURE_REQUEST_PAUSE_SECONDS", "0"))
 ENABLE_PDF_PAGE_COUNT = os.environ.get("PURE_ENABLE_PDF_PAGE_COUNT", "0").strip().lower() in ("1", "true", "yes", "on")
 
 WOS_SMART_SEARCH_URL = "https://www.webofscience.com/wos/woscc/smart-search"
+SCOPUS_PUBLIC_LINK_PATTERN = re.compile(r"scopus\.com/pages/publications/(\d+)", re.IGNORECASE)
+SCOPUS_EID_DOC_PATTERN = re.compile(r"2-s2\.0-(\d+)", re.IGNORECASE)
+SCOPUS_API_ID_PATH_PATTERN = re.compile(r"/scopus_id/(\d+)", re.IGNORECASE)
 
 # Paths checked for config file (first found wins)
 CONFIG_PATHS = [
@@ -267,6 +270,34 @@ def _detect_rgc(text):
     return False
 
 
+def _extract_scopus_doc_id(scopus_id="", eid="", source_url="", scopus_link=""):
+    """Extract Scopus numeric document ID from direct field, URLs, or EID."""
+    direct = (scopus_id or "").strip()
+    if direct:
+        if direct.isdigit():
+            return direct
+        direct_digits = re.search(r"(\d{8,})", direct)
+        if direct_digits:
+            return direct_digits.group(1)
+
+    for value in (scopus_link, source_url, eid):
+        if not value:
+            continue
+        link_match = SCOPUS_PUBLIC_LINK_PATTERN.search(value)
+        if link_match:
+            return link_match.group(1)
+
+        api_path_match = SCOPUS_API_ID_PATH_PATTERN.search(value)
+        if api_path_match:
+            return api_path_match.group(1)
+
+        eid_match = SCOPUS_EID_DOC_PATTERN.search(value)
+        if eid_match:
+            return eid_match.group(1)
+
+    return ""
+
+
 def _safe_get(url, params=None, headers=None, label="API"):
     """GET with basic error handling."""
     try:
@@ -292,17 +323,25 @@ def _maybe_pause():
 # OpenAlex
 # ---------------------------------------------------------------------------
 
-def fetch_openalex(doi=None, title=None):
+def fetch_openalex(doi=None, title=None, api_key=None):
     """Query OpenAlex. Returns normalized dict or None."""
     print("\n--- Querying OpenAlex ---")
     data = None
+    key_value = (api_key or _env_lookup(OPENALEX_ENV_NAMES) or "").strip()
+
+    def _oa_params(base):
+        params = {"mailto": "research@ust.hk"}
+        params.update(base)
+        if key_value:
+            params["api_key"] = key_value
+        return params
 
     if doi:
         url = f"{OPENALEX_BASE}/works/https://doi.org/{doi}"
-        data = _safe_get(url, params={"mailto": "research@ust.hk"}, label="OpenAlex")
+        data = _safe_get(url, params=_oa_params({}), label="OpenAlex")
 
     if not data and title:
-        params = {"search": title, "mailto": "research@ust.hk", "per_page": 5}
+        params = _oa_params({"search": title, "per_page": 5})
         resp = _safe_get(f"{OPENALEX_BASE}/works", params=params, label="OpenAlex")
         if resp and resp.get("results"):
             best, best_score = None, 0
@@ -422,6 +461,7 @@ def fetch_openalex(doi=None, title=None):
     return {
         "source": "OpenAlex",
         "id": data.get("id", ""),
+        "doi_url": data.get("doi", "") or "",
         "doi": (data.get("doi") or "").replace("https://doi.org/", ""),
         "title": _clean(data.get("title", "")),
         "abstract": _clean(abstract),
@@ -575,8 +615,9 @@ def fetch_scopus(doi=None, title=None, api_key=None):
 
     # Build Scopus URL using the Scopus document ID (dc:identifier → "SCOPUS_ID:105030037032")
     # The correct link format is: https://www.scopus.com/pages/publications/{scopus_doc_id}
+    source_url = data.get("prism:url", "") or ""
     scopus_link = ""
-    scopus_doc_id = scopus_id  # already stripped of "SCOPUS_ID:" prefix above
+    scopus_doc_id = _extract_scopus_doc_id(scopus_id=scopus_id, eid=eid, source_url=source_url)
     if scopus_doc_id:
         scopus_link = f"https://www.scopus.com/pages/publications/{scopus_doc_id}"
 
@@ -598,6 +639,7 @@ def fetch_scopus(doi=None, title=None, api_key=None):
         "source": "Scopus",
         "id": eid,
         "scopus_id": scopus_id,
+        "scopus_source_url": source_url,
         "doi": (data.get("prism:doi") or ""),
         "title": _clean(data.get("dc:title", "")),
         "abstract": abstract,
@@ -1009,6 +1051,15 @@ def generate_report(doi, title, oa_result, scopus_result):
     # Scopus: doc ID from dc:identifier (e.g. "105030037032")
     scopus_doc_id = scopus_result.get("scopus_doc_id", "") if scopus_result else ""
     scopus_eid = scopus_result.get("id", "") if scopus_result else ""
+    scopus_source_url = scopus_result.get("scopus_source_url", "") if scopus_result else ""
+    scopus_doc_id = _extract_scopus_doc_id(
+        scopus_id=scopus_doc_id,
+        eid=scopus_eid,
+        source_url=scopus_source_url,
+        scopus_link=scopus_link,
+    )
+    if scopus_doc_id and not scopus_link:
+        scopus_link = f"https://www.scopus.com/pages/publications/{scopus_doc_id}"
     oa_id_short = ""
     if oa_result and oa_result.get("id"):
         oa_id_short = oa_result["id"].replace("https://openalex.org/", "")
@@ -1258,7 +1309,9 @@ def generate_report(doi, title, oa_result, scopus_result):
     if scopus_doc_id:
         lines.append(f"  - Scopus: {scopus_doc_id}")
     elif scopus_eid:
-        lines.append(f"  - Scopus EID: {scopus_eid}")
+        lines.append(f"  - Scopus: {scopus_eid}")
+    else:
+        lines.append("  - Scopus: [not available]")
     if oa_id_short:
         lines.append(f"  - OpenAlex: {oa_id_short}")
     if merged_doi:

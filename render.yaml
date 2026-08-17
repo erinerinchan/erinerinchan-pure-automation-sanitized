@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: pure-validation-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    plan: starter
+    envVars:
+      - key: SCOPUS_API_KEY
+        sync: false
+      - key: WOS_API_KEY
+        sync: false
+    disk:
+      name: pure-cache
+      mountPath: /app/backend/data
+      sizeGB: 2

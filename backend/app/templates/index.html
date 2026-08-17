@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PURE Validation</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <main class="container">
+      <header class="card hero">
+        <p class="eyebrow">PURE Validation Console</p>
+        <h1>Lookup publication metadata by DOI or title</h1>
+        <p>Enter one record query and review metadata with quick links to Scopus, Web of Science, and OpenAlex.</p>
+      </header>
+
+      <section class="grid">
+        <div class="stack">
+          <div class="card">
+            <h2>Search</h2>
+            <label for="queryInput">DOI or title</label>
+            <input id="queryInput" type="text" placeholder="10.1016/j.jmps.2026.106512 or article title" />
+
+            <div class="row queryTypeRow">
+              <label><input id="qtAuto" type="radio" name="queryType" value="auto" checked /> Auto</label>
+              <label><input id="qtDoi" type="radio" name="queryType" value="doi" /> DOI</label>
+              <label><input id="qtTitle" type="radio" name="queryType" value="title" /> Title</label>
+            </div>
+
+            <button id="lookupBtn" class="primary">Fetch metadata</button>
+          </div>
+
+          <div class="card">
+            <div class="metadataHeader">
+              <h2>Metadata</h2>
+              <button id="metaFullscreenBtn" class="iconBtn" type="button" aria-label="Open metadata in full screen" disabled>
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <circle cx="11" cy="11" r="6"></circle>
+                  <line x1="16" y1="16" x2="21" y2="21"></line>
+                </svg>
+              </button>
+            </div>
+            <p id="statusText" class="muted">No record loaded</p>
+            <div id="metadataPanel" class="metaList"></div>
+            <pre id="errorBox" class="error" hidden></pre>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Resources</h2>
+          <p class="muted">Open source pages for citation and cross-verification.</p>
+          <h3>External links</h3>
+          <div class="row">
+            <a id="lnkScopus" class="btn secondary" href="#" target="_blank" rel="noopener noreferrer">Scopus</a>
+            <a id="lnkWos" class="btn secondary" href="#" target="_blank" rel="noopener noreferrer">Web of Science</a>
+            <a id="lnkOpenAlex" class="btn secondary" href="#" target="_blank" rel="noopener noreferrer">OpenAlex</a>
+          </div>
+
+          <p class="muted">Web of Science and Scopus access may require institutional entitlement.</p>
+        </div>
+      </section>
+
+    </main>
+
+    <div id="metaModal" class="metaModal" hidden>
+      <div class="metaModalDialog" role="dialog" aria-modal="true" aria-label="Metadata full screen view">
+        <div class="metaModalHeader">
+          <h2>Metadata</h2>
+          <button id="metaModalClose" class="iconBtn" type="button" aria-label="Close full screen view">Close</button>
+        </div>
+        <div id="metaModalBody" class="metaModalBody"></div>
+      </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>
