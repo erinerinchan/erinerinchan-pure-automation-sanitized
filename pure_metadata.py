@@ -503,18 +503,35 @@ def fetch_scopus(doi=None, title=None, api_key=None):
     headers = {"X-ELS-APIKey": api_key, "Accept": "application/json"}
     data = None
 
+    def _search_scopus_entries(query):
+        # Some keys are not entitled for COMPLETE view. Fall back to lower views
+        # so we can still recover core identifiers (eid / dc:identifier).
+        variants = [
+            {"query": query, "view": "COMPLETE"},
+            {"query": query, "view": "STANDARD"},
+            {"query": query},
+        ]
+        for params in variants:
+            resp = _safe_get(f"{SCOPUS_BASE}/search/scopus", params=params, headers=headers, label="Scopus")
+            results = (resp or {}).get("search-results", {}).get("entry", [])
+            if results:
+                if "view" in params and params["view"] != "COMPLETE":
+                    print(f"  Using Scopus view fallback: {params['view']}")
+                if "view" not in params:
+                    print("  Using Scopus view fallback: default")
+                return results
+        return []
+
     if doi:
-        params = {"query": f"DOI({doi})", "view": "COMPLETE"}
-        resp = _safe_get(f"{SCOPUS_BASE}/search/scopus", params=params, headers=headers, label="Scopus")
-        results = (resp or {}).get("search-results", {}).get("entry", [])
+        results = _search_scopus_entries(f"DOI({doi})")
         if results and results[0].get("dc:title"):
+            data = results[0]
+        elif results:
             data = results[0]
 
     if not data and title:
         safe_title = title.replace('"', '\\"')
-        params = {"query": f'TITLE("{safe_title}")', "view": "COMPLETE"}
-        resp = _safe_get(f"{SCOPUS_BASE}/search/scopus", params=params, headers=headers, label="Scopus")
-        results = (resp or {}).get("search-results", {}).get("entry", [])
+        results = _search_scopus_entries(f'TITLE("{safe_title}")')
         if results:
             best, best_score = None, 0
             for r in results:
