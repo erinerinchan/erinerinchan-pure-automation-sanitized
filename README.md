@@ -1,47 +1,105 @@
-# PURE DOI Metadata Helper (Sanitized)
+# PURE Publication Validation Web App
 
-Extracts publication metadata from a DOI into a plain-text report and opens Scopus, Web of Science, and OpenAlex tabs for quick cross-checking.
+## 1. What The App Does
 
-## What this script does
+This project provides a web interface and API to look up publication metadata by DOI or title and prepare structured output for HKUST PURE workflows.
 
-The main script is [pure_metadata.py](pure_metadata.py).
+It includes:
 
-1. Accepts a DOI (or title) from the user.
-2. Queries metadata sources (OpenAlex and Scopus when API key is available).
-3. Merges results into a structured plain-text report.
-4. Saves the report to a local .txt file.
-5. Opens browser tabs for cross-checking the same publication in:
-	- Scopus
-	- Web of Science
-	- OpenAlex
+- A FastAPI backend (`backend/app/main.py`)
+- A browser UI served by FastAPI (no Node required for the lookup UI)
+- Metadata aggregation from OpenAlex and Scopus (`pure_metadata.py`)
+- Optional Web of Science support when API key is available
 
-## Scope and limitations
+Live production URL:
 
-This tool does not automate full PURE record entry.
+- https://pure-validation-api.onrender.com
 
-1. It does **not** fill PURE fields end-to-end.
-2. It does **not** replace manual review/validation decisions in PURE.
-3. It is intended to save time only on:
-	- Looking up and reviewing metadata from a DOI
-	- Opening Scopus, Web of Science, and OpenAlex tabs for cross-checking
+## 2. Local Run Steps
 
-## Why this exists
+From repository root:
 
-Manual metadata lookup and opening multiple database tabs are repetitive and time-consuming. This helper removes those two repeated steps so staff can focus on the judgment-based part of record validation.
-
-## How to run
+1. Install backend dependencies:
 
 ```bash
-python pure_metadata.py
+pip install -r backend/requirements.txt
 ```
 
-Then enter a DOI when prompted.
+2. Run the API:
 
-## Configuration notes
+```bash
+python -m uvicorn backend.app.main:app --reload --host 0.0.0.0 --port 8000
+```
 
-1. Scopus lookups require an API key (for example via environment variable such as SCOPUS_API_KEY).
-2. If no Scopus key is present, the script still runs using OpenAlex.
+3. Open:
 
-## Sanitization note
+- http://localhost:8000
 
-Sanitized version of a production script used at a university library; all data shown is synthetic.
+If port `8000` is occupied locally, run on `8001` instead.
+
+## 3. Render Deployment Steps
+
+This repo includes a Render Blueprint file: `render.yaml`.
+
+Deployment flow:
+
+1. Connect repo in Render.
+2. Deploy using Blueprint (`render.yaml`).
+3. Ensure environment variables are set (see section 4).
+4. Trigger deploy (or wait for auto deploy on push to `main`).
+
+Configured service:
+
+- Web service name: `pure-validation-api`
+- Runtime: Docker (`backend/Dockerfile`)
+- Health endpoint: `GET /api/health`
+
+## 4. Required Environment Variables
+
+- `SCOPUS_API_KEY` (required for Scopus metadata and Scopus IDs)
+- `WOS_API_KEY` (optional)
+- `OPENALEX_API_KEY` (optional; OpenAlex works without it)
+
+Notes:
+
+- Without `SCOPUS_API_KEY`, Scopus fields and Scopus IDs will be empty.
+- `WOS_API_KEY` is only needed for WoS API enrichment.
+
+## 5. API Endpoints
+
+Primary lookup endpoints:
+
+- `POST /api/lookup`
+  - Body: `{"query": "<doi-or-title>", "query_type": "doi|title|auto"}`
+  - Returns resolved metadata, external IDs, and structured report output.
+
+- `GET /api/health`
+  - Returns service health (`{"ok": true}`).
+
+Additional batch endpoints remain available in the backend (uploads/jobs/results/excel) for broader validation workflows.
+
+## 6. Known Behavior (Scopus ID Retrieval)
+
+Scopus ID retrieval depends on Scopus key entitlement.
+
+The app now attempts Scopus search with fallback views:
+
+1. `COMPLETE`
+2. `STANDARD`
+3. default view
+
+This fallback exists because some Scopus keys are not authorized for `COMPLETE` and return:
+
+- `AUTHORIZATION_ERROR`
+
+When authorized for at least one view, the app extracts Scopus identifiers from available fields (`scopus_doc_id`, `eid`, and link-derived fallback patterns).
+
+## 7. Live URL
+
+- https://pure-validation-api.onrender.com
+
+## Project Notes
+
+- Core metadata logic lives in `pure_metadata.py`.
+- Backend source is under `backend/app/`.
+- Render deployment config is in `render.yaml`.
